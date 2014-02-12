@@ -1,11 +1,19 @@
 import csv
 import datetime
-from StringIO import StringIO
-import re
-import psycopg2
-import sys
+import gflags
 import itertools 
 import math
+import psycopg2
+import re
+from StringIO import StringIO
+import sys
+
+FLAGS = gflags.FLAGS
+gflags.DEFINE_string('connection', None, 'Postgresql connection string for pyscopg2')
+gflags.RegisterValidator('connection', lambda x:x, '--connection is not optional.  You must provide a postgresql connection string.')
+
+gflags.DEFINE_string('table', None, 'The tablename to create and populate')
+gflags.RegisterValidator('table', lambda x:x, '--table is not optional.  You must provide a table name to create and populate')
 
 RE_INT = re.compile('^[+-]?[0-9]+([.]0+)?$')
 
@@ -155,11 +163,23 @@ def load_tables(cxn, table, fields, data):
 
 def run():
     connection_string, table = sys.argv[1:]
+    connection_string = FLAGS.connection
+    table = FLAGS.table
     data = sys.stdin.read()
     fields = list(analyize(data))
 
     cxn = psycopg2.connect(connection_string)
     create_table(cxn, table, fields)
     load_tables(cxn, table, fields, data)
+
+def main(argv):
+    try:
+        argv = FLAGS(argv)[1:]
+    except (gflags.FlagsError, KeyError, IndexError), e:
+        sys.stderr.write("%s\nUsage: %s \n%s\n" % (
+                e, os.path.basename(sys.argv[0]), FLAGS))
+        return 1
+
+    return run()
     
-run()
+    

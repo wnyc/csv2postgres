@@ -1,0 +1,6 @@
+#!/usr/bin/python
+
+from csv2postgres import main
+from sys import argv, exit
+
+exit(main(argv) or 0)
